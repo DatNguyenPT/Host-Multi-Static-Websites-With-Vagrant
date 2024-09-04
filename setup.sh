@@ -4,9 +4,11 @@
 echo "##############################################"
 echo "Creating log file"
 
-sudo mkdir -p /etc/log
-sudo touch /etc/log/errorlog.txt
+if [ ! -d /etc/log ]; then
+    sudo mkdir -p /etc/log
+fi
 
+sudo touch /etc/log/errorlog.txt
 filedir="/etc/log/errorlog.txt"
 
 echo "##############################################"
@@ -47,9 +49,9 @@ url3="https://www.tooplate.com/zip-templates/2134_gotto_job.zip"
 user=$(cat /etc/hostname)
 url=""
 
-if [ "${user}" == "web01" ]; then
+if [ "$user" == "web01" ]; then
     url=$url1
-elif [ "${user}" == "web02" ]; then 
+elif [ "$user" == "web02" ]; then 
     url=$url2
 else
     url=$url3
@@ -58,8 +60,17 @@ fi
 # Extract the file name from the URL
 filename=$(basename "$url")
 
+# Remove .zip extension from filename
+basename_no_ext="${filename%.zip}"
+
+if [ ! -d /etc/websitedownload ]; then
+    sudo mkdir -p /etc/websitedownload
+fi
+
+cd /etc/websitedownload
+
 # Download the file
-sudo wget "$url" -O /etc/website.zip
+sudo wget "$url"
 
 # Install unzip
 sudo apt-get install unzip -y
@@ -67,13 +78,17 @@ sudo apt-get install unzip -y
 echo "Downloaded file name is: $filename"
 
 # Unzip and deploy the website
-sudo mkdir -p /etc/website
-sudo unzip /etc/website.zip -d /etc/website
+
+if [ ! -d /etc/website ]; then
+    sudo mkdir -p /etc/website
+fi
+
+sudo unzip /etc/websitedownload/$filename -d /etc/website
 
 echo "Deploying static website....."
 
 sudo rm -rf /var/www/html/index.html
-sudo cp -r /etc/website/* /var/www/html/
+sudo cp -r /etc/website/$basename_no_ext/* /var/www/html/
 sudo chown -R www-data:www-data /var/www/html/
 sudo chmod -R 755 /var/www/html/
 
